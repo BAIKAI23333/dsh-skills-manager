@@ -56,9 +56,10 @@ def discover(source: Path):
 
 def rebuild_modes():
     items = discover(SOURCE)
-    if not items:
-        print('没有发现技能，请确认 source 目录结构')
-        return 1
+    if not SOURCE.exists():
+        print(f'提示: 未找到 Skill 源 {SOURCE}，将创建空 modes；安装后可在 Web UI 中导入 Skill。')
+    elif not items:
+        print(f'提示: {SOURCE} 下没有发现 Skill，将创建空 modes；安装后可在 Web UI 中导入 Skill。')
     groups = {
         'main': [it for it in items if it[0] == 'main'],
         'plugin': [it for it in items if it[0] == 'plugin'],
@@ -217,6 +218,19 @@ def profile_deps(profile: Path):
     return data.get('dependencies', {})
 
 
+def ensure_profile(profile_name):
+    profile = DSH_HOME / 'profiles' / profile_name
+    if profile.exists():
+        return profile
+    dsh = shutil.which('dsh')
+    if dsh is None:
+        print(f'warning: 未找到 dsh 命令，无法初始化 profile {profile_name}')
+        print('请先运行一次: dsh --profile ' + profile_name + ' --help')
+        return profile
+    sh(['dsh', '--profile', profile_name, '--help'])
+    return profile
+
+
 def install():
     rc = rebuild_modes()
     if rc:
@@ -226,7 +240,7 @@ def install():
         return rc
     copy_build_back()
     for profile_name, include_client in (('web', True), ('headless', False)):
-        profile = DSH_HOME / 'profiles' / profile_name
+        profile = ensure_profile(profile_name)
         if not profile.exists():
             print(f'跳过不存在的 profile: {profile}')
             continue
