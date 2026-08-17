@@ -88,11 +88,9 @@ try {
   await visibleText(page, /确定用预设替换|Replace all current groups/)
   await page.getByRole('button', { name: /重置预设|Reset presets/ }).last().click()
   await visibleText(page, /已重置为预设|Presets restored/)
-  await page.screenshot({ path: `${SHOT_DIR}skills-manage-reset.png`, fullPage: true })
-
   console.log('visual checks passed')
   console.log('screenshots:')
-  for (const name of ['skills-manage-section.png', 'skills-manage-none-all.png', 'skills-manage-edit-import.png', 'skills-manage-import.png', 'skills-manage-reset.png']) {
+  for (const name of ['skills-manage-section.png', 'skills-manage-none-all.png', 'skills-manage-edit-import.png', 'skills-manage-import.png']) {
     console.log(`  ${SHOT_DIR}${name}`)
   }
 } finally {
