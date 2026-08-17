@@ -27,26 +27,32 @@
 
 ## 安装
 
-### 依赖
+### 普通用户：一条命令
 
-- Node.js 22.19+ 或 24+
-- pnpm
-- 一份 `deepseek-harness` 源码（用于构建插件，默认 `~/AI_Coding/deepseek-harness`）
+从 GitHub Releases 下载 `dsh-skills-manager-<version>.tgz`，然后：
 
-### 一键安装
+```bash
+dsh plugin --profile web add ./dsh-skills-manager-<version>.tgz
+dsh web
+```
+
+DSH 会自动识别该包为 bundle，并把它加入 profile 的插件层；打开
+**设置 → Skill 群** 即可使用。headless 用户：
+
+```bash
+dsh plugin --profile headless add ./dsh-skills-manager-<version>.tgz
+```
+
+### 开发者：从源码构建
 
 ```bash
 git clone https://github.com/<your-name>/dsh-skills-manager.git
 cd dsh-skills-manager
-./install.sh
+
+# 需要一份 deepseek-harness 源码（用于 client bundle 构建预设）
+HARNESS=~/AI_Coding/deepseek-harness ./scripts/make-release.sh
+dsh plugin --profile web add ./release/dsh-skills-manager-0.1.0-rc.1.tgz
 ```
-
-安装器会：
-
-1. 从你本地的 Skill 源（默认 `~/Coding_Setting`）重建 `modes/{main,plugin,all}` 符号链接库
-2. 把本仓库的插件源码同步进 `deepseek-harness` 并构建
-3. 把构建产物安装进 DSH 的 `web` / `headless` profile
-4. 写入 profile patch
 
 ## 使用
 
