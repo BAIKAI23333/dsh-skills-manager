@@ -29,7 +29,7 @@
 
 ### 普通用户：一条命令（已发布到 npm）
 
-DSH 官方推荐通过 npx 使用，无需全局安装（Windows / Linux / macOS 通用）：
+通过 DSH 官方推荐的 npx 命令使用 DSH：
 
 ```bash
 npx @deepseek-ai/dsh plugin --profile web add @baikai233/dsh-skills-manager
@@ -45,7 +45,7 @@ dsh web
 
 两种方式都会写入同一个 DSH profile（默认 `~/.dsh`），插件安装后自动生效。
 
-headless 用户（推荐 npx）：
+headless 用户：
 
 ```bash
 npx @deepseek-ai/dsh plugin --profile headless add @baikai233/dsh-skills-manager
