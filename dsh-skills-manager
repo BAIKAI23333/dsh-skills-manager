@@ -135,21 +135,75 @@ def build_plugin():
     return rc.returncode
 
 
-def write_profile_patch(profile: Path, include_client: bool):
-    rows = [f'    - id: skills-manage',
+PATCH_BEGIN = '# >>> dsh-skills-manager >>>'
+PATCH_END = '# <<< dsh-skills-manager <<<'
+
+
+def managed_patch_text(include_client: bool) -> str:
+    rows = ['- insert:',
+            '    - id: skills-manage',
             f'      name: \'{HOST_NAME}\'',
             '      config:',
-            f'        libraryDirs:',
+            '        libraryDirs:',
             f'          - {LIBRARY_DIR}',
             f'        managedLibraryDir: {MANAGED_LIBRARY}',
             '        rank: 250']
     if include_client:
-        rows.append(f'    - id: ui-skills-manage')
+        rows.append('    - id: ui-skills-manage')
         rows.append(f'      name: \'{CLIENT_NAME}\'')
-    text = ('# User patch layer managed by Skills_Manage installer.\n'
-            '- insert:\n' + '\n'.join(rows) + '\n')
-    (profile / 'cordis.patch.yml').write_text(text)
-    print(f'写入 {profile / "cordis.patch.yml"}')
+    return PATCH_BEGIN + '\n' + '\n'.join(rows) + '\n' + PATCH_END + '\n'
+
+
+def write_profile_patch(profile: Path, include_client: bool):
+    patch_file = profile / 'cordis.patch.yml'
+    lines = patch_file.read_text().splitlines(keepends=True) if patch_file.exists() else []
+
+    # Remove an existing managed block.
+    start = end = None
+    for index, line in enumerate(lines):
+        if line.strip() == PATCH_BEGIN:
+            start = index
+        elif line.strip() == PATCH_END and start is not None:
+            end = index
+            break
+    if start is not None and end is not None:
+        del lines[start:end + 1]
+
+    # Remove legacy unmarked insert blocks owned by older installers.
+    kept = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if not line.startswith('- insert:'):
+            kept.append(line)
+            index += 1
+            continue
+        block = [line]
+        cursor = index + 1
+        owns_skills = False
+        while cursor < len(lines):
+            candidate = lines[cursor]
+            if candidate.startswith('- ') and not candidate.startswith('- id:'):
+                break
+            if 'id: skills-manage' in candidate or 'id: ui-skills-manage' in candidate:
+                owns_skills = True
+            block.append(candidate)
+            cursor += 1
+        if owns_skills:
+            index = cursor
+            continue
+        kept.extend(block)
+        index = cursor
+    lines = kept
+
+    # Remove trailing empty lines before appending our block.
+    while lines and lines[-1].strip() == '':
+        lines.pop()
+    if lines and not lines[-1].endswith('\n'):
+        lines.append('\n')
+    lines.append('\n' + managed_patch_text(include_client))
+    patch_file.write_text(''.join(lines))
+    print(f'合并写入 {patch_file}')
 
 
 def profile_deps(profile: Path):
@@ -191,8 +245,23 @@ def uninstall():
         names = [HOST_NAME] + ([CLIENT_NAME] if include_client else [])
         sh(['corepack', 'pnpm', 'remove', *names], cwd=profile)
         patch = profile / 'cordis.patch.yml'
-        patch.write_text('# User patch layer (Skills_Manage plugin removed)\n[]\n')
-        print(f'移除 {patch}')
+        if patch.exists():
+            lines = patch.read_text().splitlines(keepends=True)
+            start = end = None
+            for index, line in enumerate(lines):
+                if line.strip() == PATCH_BEGIN:
+                    start = index
+                elif line.strip() == PATCH_END and start is not None:
+                    end = index
+                    break
+            if start is not None and end is not None:
+                del lines[start:end + 1]
+                while lines and lines[-1].strip() == '':
+                    lines.pop()
+                if not lines:
+                    lines = ['[]\n']
+                patch.write_text(''.join(lines))
+                print(f'从 {patch} 移除托管块')
     print('卸载完成')
     return 0
 

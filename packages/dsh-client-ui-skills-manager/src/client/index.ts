@@ -9,6 +9,8 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: brings ctx.locale into the ClientContext merge.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import skillsManageRemote from '@deepseek-ai/dsh-skills-manage/remote'
+import type {} from '@deepseek-ai/dsh-skills-manage/remote'
 import { en, zh, type SkillsManageLocaleKey } from './locales.ts'
 import { SkillsManageSection, type SkillsManageTabInjected } from './SkillsManageSection.tsx'
 
@@ -25,16 +27,33 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Dictionary namespace owned by this plugin. */
 export const NS = 'settings.skillsManage'
 
-/** Services required by the Settings slot and the namespace scope. */
+/** Services required by the Settings slot, scope, and Remote namespace. */
 export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
 
-/** Contribute the top-level Skills section to Settings. */
-export function apply(ctx: ClientContext): void {
+function unwrap<T>(
+  result: { ok: true; value: T } | { ok: false; error: { code: string; message: string } },
+  method: string,
+): T {
+  if (!result.ok) throw new Error(`${method} failed: ${result.error.code}: ${result.error.message}`)
+  return result.value
+}
+
+/** Mount the generated Remote contribution and register the Settings section. */
+export async function apply(ctx: ClientContext): Promise<void> {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-skills-manage: dictionaries')
+
+  const disposeRemote = await ctx.remote.$mount(skillsManageRemote)
+  ctx.effect(() => disposeRemote, 'ui-skills-manage: skillsManage remote')
+  const skillsManage = ctx.get('remote.skillsManage') as ClientContext['remote']['skillsManage']
 
   const t = ctx.locale.bind(NS)
   const injected = (): SkillsManageTabInjected => ({
     scope: ctx.settingsScope.bind({ namespace: 'skills-manage' }),
+    remote: {
+      importPath: async path => unwrap(await skillsManage.importPath(path), 'skillsManage.importPath'),
+      importFiles: async files => unwrap(await skillsManage.importFiles(files), 'skillsManage.importFiles'),
+      refresh: async () => unwrap(await skillsManage.refresh(), 'skillsManage.refresh'),
+    },
   })
 
   ctx.slots.inject('settings.section', () => ctx.slots.register({

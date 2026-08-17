@@ -37,21 +37,13 @@ export interface ImportFileEntry {
   content: string
 }
 
-export interface SkillsImportRequest {
-  id: number
-  path: string
-  files: ImportFileEntry[]
-}
-
 export interface SkillsImportResult {
-  id: number
   ok: boolean
   message: string
   imported: string[]
 }
 
 export interface SkillsRefreshResult {
-  id: number
   ok: boolean
   message: string
 }
@@ -61,15 +53,16 @@ export interface SkillsManageSettings {
   groups: SkillGroup[]
   presets: SkillGroup[]
   library: SkillLibraryEntry[]
-  importRequest: SkillsImportRequest
-  importResult: SkillsImportResult
-  refreshRequestId: number
-  refreshResult: SkillsRefreshResult
 }
 
 /** Registration-side face bound by the client plugin. */
 export interface SkillsManageTabInjected {
   scope: SettingsScope<SkillsManageSettings>
+  remote: {
+    importPath(path: string): Promise<SkillsImportResult>
+    importFiles(files: ImportFileEntry[]): Promise<SkillsImportResult>
+    refresh(): Promise<SkillsRefreshResult>
+  }
 }
 
 /** Full component props assembled by the Settings slot renderer. */
@@ -309,7 +302,7 @@ function GroupForm({ t, draft, setDraft, onSave, onCancel, library, query, setQu
 }
 
 /** Render the full section. */
-export function SkillsManageSection({ t, scope }: SkillsManageSectionProps): ReactNode {
+export function SkillsManageSection({ t, scope, remote }: SkillsManageSectionProps): ReactNode {
   const subscribe = useCallback((listener: () => void) => scope.subscribe(listener), [scope])
   const getSnapshot = useCallback(() => scope.getSnapshot(), [scope])
   const snapshot = useSyncExternalStore(subscribe, getSnapshot)
@@ -322,12 +315,6 @@ export function SkillsManageSection({ t, scope }: SkillsManageSectionProps): Rea
   const [notice, setNotice] = useState<Notice | null>(null)
   const [importing, setImporting] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
-  const importTimeouts = useRef<Set<number>>(new Set())
-
-  useEffect(() => () => {
-    for (const timer of importTimeouts.current) window.clearTimeout(timer)
-    importTimeouts.current.clear()
-  }, [])
 
   useEffect(() => {
     if (!creating) return
@@ -354,63 +341,9 @@ export function SkillsManageSection({ t, scope }: SkillsManageSectionProps): Rea
     ? settings.activeGroup
     : settings.groups[0]?.id ?? ''
 
-  const waitForImportResult = async (id: number): Promise<SkillsImportResult> => {
-    return new Promise((resolveImport, rejectImport) => {
-      let settled = false
-      const check = (): void => {
-        if (settled) return
-        const current = scope.getSnapshot().value
-        const result = current?.importResult
-        if (result?.id === id) {
-          settled = true
-          off()
-          resolveImport(result)
-        }
-      }
-      const off = scope.subscribe(check)
-      check()
-      const timer = window.setTimeout(() => {
-        importTimeouts.current.delete(timer)
-        if (settled) return
-        settled = true
-        off()
-        rejectImport(new Error('import timeout'))
-      }, 20000)
-      importTimeouts.current.add(timer)
-    })
-  }
-
-  const waitForRefreshResult = async (id: number): Promise<SkillsRefreshResult> => {
-    return new Promise((resolveRefresh, rejectRefresh) => {
-      let settled = false
-      const check = (): void => {
-        if (settled) return
-        const current = scope.getSnapshot().value
-        const result = current?.refreshResult
-        if (result?.id === id) {
-          settled = true
-          off()
-          resolveRefresh(result)
-        }
-      }
-      const off = scope.subscribe(check)
-      check()
-      const timer = window.setTimeout(() => {
-        importTimeouts.current.delete(timer)
-        if (settled) return
-        settled = true
-        off()
-        rejectRefresh(new Error('refresh timeout'))
-      }, 20000)
-      importTimeouts.current.add(timer)
-    })
-  }
-
   const refreshLibrary = async (): Promise<void> => {
-    const id = Date.now()
     try {
-      await scope.set('refreshRequestId', id)
-      const result = await waitForRefreshResult(id)
+      const result = await remote.refresh()
       setNotice({ key: result.ok ? 'refreshDone' : 'refreshFailed', detail: result.message })
     } catch (error) {
       setNotice({ key: 'refreshFailed', detail: String(error) })
@@ -428,15 +361,11 @@ export function SkillsManageSection({ t, scope }: SkillsManageSectionProps): Rea
 
   const runImport: ImportRunner = async (payload) => {
     if (importing) return null
-    const id = Date.now()
     setImporting(true)
     try {
-      await scope.set('importRequest', {
-        id,
-        path: payload.path ?? '',
-        files: payload.files ?? [],
-      })
-      const result = await waitForImportResult(id)
+      const result = payload.path
+        ? await remote.importPath(payload.path)
+        : await remote.importFiles(payload.files ?? [])
       setNotice({ key: result.ok ? 'imported' : 'importFailed', detail: result.message })
       return result
     } catch (error) {

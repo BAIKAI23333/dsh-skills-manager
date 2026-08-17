@@ -28,6 +28,9 @@
     },
     {
       "path": "../../runtime-diagnostics/invariants"
+    },
+    {
+      "path": "../../skill/skills-manage"
     }
   ]
 }

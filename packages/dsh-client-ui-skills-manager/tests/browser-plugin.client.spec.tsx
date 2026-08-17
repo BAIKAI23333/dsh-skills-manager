@@ -31,7 +31,12 @@ async function bench() {
   ctx.provide('locale', locale)
   ctx.provide('settingsScope', { bind: () => mockScope() })
   ctx.provide('connection', {})
-  ctx.provide('remote', {})
+  ctx.provide('remote', { $mount: async () => async () => {} })
+  ctx.provide('remote.skillsManage', {
+    importPath: async () => ({ ok: true, value: { ok: true, message: '', imported: [] } }),
+    importFiles: async () => ({ ok: true, value: { ok: true, message: '', imported: [] } }),
+    refresh: async () => ({ ok: true, value: { ok: true, message: '' } }),
+  })
   return { ctx, slots: ctx.get('slots') as SlotRegistry, locale }
 }
 

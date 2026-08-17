@@ -30,46 +30,24 @@ export interface SkillsManageSettings {
   library: SkillLibraryEntry[]
   /** Preset groups; clients use this as the reset target. */
   presets: SkillGroup[]
-  /** Pending import command; host clears it after processing. */
-  importRequest: SkillsImportRequest
-  /** Last completed import command result. */
-  importResult: SkillsImportResult
-  /** Refresh request id issued by the client. */
-  refreshRequestId: number
-  /** Last completed refresh result. */
-  refreshResult: SkillsRefreshResult
 }
 
-/** Client-to-host import command carried by the settings section. */
-export interface SkillsImportRequest {
-  /** Monotonic request id issued by the client. */
-  id: number
-  /** Optional host path for folder/file import. */
-  path: string
-  /** Optional browser-uploaded markdown files. */
-  files: ImportFileEntry[]
-}
-
-/** One browser-uploaded skill file. */
-export interface ImportFileEntry {
+/** One browser-uploaded skill file for the importFiles Remote. */
+export interface ImportFile {
   name: string
   content: string
 }
 
-/** Host response to one import command. */
-export interface SkillsImportResult {
-  /** Echoes the request id that produced this result. */
-  id: number
+/** Result of one importFiles/importPath Remote command. */
+export interface ImportOutcome {
   ok: boolean
   message: string
   /** Skill names newly imported by this request. */
   imported: string[]
 }
 
-/** Host response to one refresh command. */
+/** Result of the refresh Remote command. */
 export interface SkillsRefreshResult {
-  /** Echoes the request id that produced this result. */
-  id: number
   ok: boolean
   message: string
 }
