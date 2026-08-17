@@ -56,13 +56,13 @@ HARNESS=~/AI_Coding/deepseek-harness ./scripts/make-release.sh
 构建产物输出到：
 
 ```text
-release/dsh-skills-manager-0.1.0-rc.1.tgz
+release/dsh-skills-manager-0.1.0-rc.2.tgz
 ```
 
 本地 tarball 验证：
 
 ```bash
-dsh plugin --profile web add ./release/dsh-skills-manager-0.1.0-rc.1.tgz
+dsh plugin --profile web add ./release/dsh-skills-manager-0.1.0-rc.2.tgz
 ```
 
 ## 使用
