@@ -29,28 +29,32 @@
 
 ### 普通用户：一条命令（已发布到 npm）
 
-DSH 已全局安装时：
-
-```bash
-dsh plugin --profile web add @baikai233/dsh-skills-manager
-dsh web
-```
-
-通过 npx 使用 DSH 时（Windows / Linux / macOS 通用）：
+DSH 官方推荐通过 npx 使用，无需全局安装（Windows / Linux / macOS 通用）：
 
 ```bash
 npx @deepseek-ai/dsh plugin --profile web add @baikai233/dsh-skills-manager
 npx @deepseek-ai/dsh web
 ```
 
+如果你已经全局安装了 dsh：
+
+```bash
+dsh plugin --profile web add @baikai233/dsh-skills-manager
+dsh web
+```
+
 两种方式都会写入同一个 DSH profile（默认 `~/.dsh`），插件安装后自动生效。
 
-headless 用户：
+headless 用户（推荐 npx）：
+
+```bash
+npx @deepseek-ai/dsh plugin --profile headless add @baikai233/dsh-skills-manager
+```
+
+如果已全局安装 dsh：
 
 ```bash
 dsh plugin --profile headless add @baikai233/dsh-skills-manager
-# 或
-npx @deepseek-ai/dsh plugin --profile headless add @baikai233/dsh-skills-manager
 ```
 
 ### 开发者：从源码构建
