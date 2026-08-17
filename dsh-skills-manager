@@ -16,10 +16,13 @@ from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent
 HARNESS = Path(os.environ.get('DSH_SKILLS_HARNESS') or Path.home() / 'AI_Coding' / 'deepseek-harness').expanduser().resolve()
-HOST_PKG = PROJECT / 'packages' / 'dsh-skills-manager'
-CLIENT_PKG = PROJECT / 'packages' / 'dsh-client-ui-skills-manager'
+HOST_SRC = PROJECT / 'packages' / 'dsh-skills-manager'
+CLIENT_SRC = PROJECT / 'packages' / 'dsh-client-ui-skills-manager'
 HARNESS_HOST_DIR = HARNESS / 'packages' / 'skill' / 'skills-manage'
 HARNESS_CLIENT_DIR = HARNESS / 'packages' / 'client' / 'ui-skills-manage'
+# Profiles link the built harness packages (workspace deps resolve there).
+HOST_PKG = HARNESS_HOST_DIR
+CLIENT_PKG = HARNESS_CLIENT_DIR
 MODES_ROOT = PROJECT / 'modes'
 SOURCE = Path(os.environ.get('DSH_SKILLS_SOURCE') or Path.home() / 'Coding_Setting').expanduser().resolve()
 DSH_HOME = Path(os.environ.get('DSH_HOME') or Path.home() / '.dsh').expanduser().resolve()
@@ -97,14 +100,14 @@ def ensure_harness_refs():
 
 def sync_source_to_harness():
     '''Copy the canonical package sources from this repo into the harness workspace.'''
-    for source, target in ((HOST_PKG, HARNESS_HOST_DIR), (CLIENT_PKG, HARNESS_CLIENT_DIR)):
+    for source, target in ((HOST_SRC, HARNESS_HOST_DIR), (CLIENT_SRC, HARNESS_CLIENT_DIR)):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(source, target, dirs_exist_ok=True, ignore=shutil.ignore_patterns('node_modules', 'lib', '*.tsbuildinfo'))
         print(f'synced {source} -> {target}')
 
 def copy_build_back():
     '''Copy built lib artifacts back into the standalone packages.'''
-    for source, target in ((HARNESS_HOST_DIR, HOST_PKG), (HARNESS_CLIENT_DIR, CLIENT_PKG)):
+    for source, target in ((HARNESS_HOST_DIR, HOST_SRC), (HARNESS_CLIENT_DIR, CLIENT_SRC)):
         for part in ('lib',):
             src = source / part
             dst = target / part
