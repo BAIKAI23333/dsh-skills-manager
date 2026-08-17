@@ -8,7 +8,7 @@ set -euo pipefail
 HARNESS="${HARNESS:-$HOME/AI_Coding/deepseek-harness}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RELEASE="$ROOT/release"
-VERSION="${VERSION:-0.1.0-rc.2}"
+VERSION="${VERSION:-0.1.0-rc.3}"
 MERGED="$RELEASE/merged/dsh-skills-manager"
 
 cd "$HARNESS"
@@ -30,10 +30,14 @@ cp -a packages/client/ui-skills-manage/lib/types/client "$MERGED/lib/types/clien
 # Drop stale type artifacts from earlier file renames.
 rm -f "$MERGED"/lib/types/client/SkillsManageTab.*
 
-# Typert artifacts are generated under the development package name; rebrand
-# them to the published dual-face package name.
+# Typert artifacts and the client bundle are generated under the development
+# package names; rebrand them to the published dual-face package name.
 find "$MERGED/lib" -type f \( -name 'typert.host.js' -o -name 'typert.remote-client.js' -o -name 'typert.host.d.ts' -o -name 'typert.remote-client.d.ts' \) \
   -exec sed -i 's/@deepseek-ai\/dsh-skills-manage/@baikai233\/dsh-skills-manager/g' {} \;
+sed -i \
+  -e 's/@deepseek-ai\/dsh-client-ui-skills-manage/@baikai233\/dsh-skills-manager/g' \
+  -e 's/@deepseek-ai\/dsh-skills-manage/@baikai233\/dsh-skills-manager/g' \
+  "$MERGED/lib/client.js"
 
 cat > "$MERGED/cordis.patch.yml" <<'YAML'
 # dsh-skills-manager bundle patch.
