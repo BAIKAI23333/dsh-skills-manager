@@ -33,20 +33,20 @@ rm -f "$MERGED"/lib/types/client/SkillsManageTab.*
 # Typert artifacts are generated under the development package name; rebrand
 # them to the published dual-face package name.
 find "$MERGED/lib" -type f \( -name 'typert.host.js' -o -name 'typert.remote-client.js' -o -name 'typert.host.d.ts' -o -name 'typert.remote-client.d.ts' \) \
-  -exec sed -i 's/@deepseek-ai\/dsh-skills-manage/dsh-skills-manager/g' {} \;
+  -exec sed -i 's/@deepseek-ai\/dsh-skills-manage/@baikai23333\/dsh-skills-manager/g' {} \;
 
 cat > "$MERGED/cordis.patch.yml" <<'YAML'
 # dsh-skills-manager bundle patch.
 - insert:
     - id: skills-manager
-      name: 'dsh-skills-manager'
+      name: '@baikai23333/dsh-skills-manager'
       config:
         rank: 250
 YAML
 
 cat > "$MERGED/package.json" <<'JSON'
 {
-  "name": "dsh-skills-manager",
+  "name": "@baikai23333/dsh-skills-manager",
   "description": "DSH skill-group manager: import, organize, and switch SKILL.md groups",
   "version": "VERSION_PLACEHOLDER",
   "license": "MIT",
