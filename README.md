@@ -27,9 +27,7 @@
 
 ## 安装
 
-### 普通用户：一条命令
-
-从 GitHub Releases 下载 `dsh-skills-manager-<version>.tgz`，然后：
+### 普通用户：一条命令（已发布到 npm）
 
 ```bash
 dsh plugin --profile web add @baikai233/dsh-skills-manager
@@ -37,7 +35,9 @@ dsh web
 ```
 
 DSH 会自动识别该包为 bundle，并把它加入 profile 的插件层；打开
-**设置 → Skill 群** 即可使用。headless 用户：
+**设置 → Skill 群** 即可使用。
+
+headless 用户：
 
 ```bash
 dsh plugin --profile headless add @baikai233/dsh-skills-manager
@@ -51,7 +51,18 @@ cd dsh-skills-manager
 
 # 需要一份 deepseek-harness 源码（用于 client bundle 构建预设）
 HARNESS=~/AI_Coding/deepseek-harness ./scripts/make-release.sh
-dsh plugin --profile web add ./release/dsh-skills-manager-0.1.0-rc.1.tgz  # 本地 tarball 验证
+```
+
+构建产物输出到：
+
+```text
+release/dsh-skills-manager-0.1.0-rc.1.tgz
+```
+
+本地 tarball 验证：
+
+```bash
+dsh plugin --profile web add ./release/dsh-skills-manager-0.1.0-rc.1.tgz
 ```
 
 ## 使用
