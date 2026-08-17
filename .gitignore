@@ -8,3 +8,5 @@ modes/all/*
 !modes/main/.gitkeep
 !modes/plugin/.gitkeep
 !modes/all/.gitkeep
+release/
+__pycache__/
