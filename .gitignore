@@ -1,0 +1,10 @@
+node_modules/
+lib/
+*.tsbuildinfo
+.modes/
+modes/main/*
+modes/plugin/*
+modes/all/*
+!modes/main/.gitkeep
+!modes/plugin/.gitkeep
+!modes/all/.gitkeep

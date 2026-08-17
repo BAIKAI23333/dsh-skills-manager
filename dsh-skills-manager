@@ -1,0 +1,236 @@
+#!/usr/bin/env python3
+"""One-click installer for the DSH Skills Manage plugin.
+
+Commands:
+  install          build and install the plugin into web + headless profiles
+  uninstall        remove the plugin rows and profile dependencies
+  rebuild-modes    rebuild modes/{main,plugin,all} symlink farms from source
+  status           show installation state
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+PROJECT = Path(__file__).resolve().parent
+HARNESS = Path(os.environ.get('DSH_SKILLS_HARNESS') or Path.home() / 'AI_Coding' / 'deepseek-harness').expanduser().resolve()
+HOST_PKG = PROJECT / 'packages' / 'dsh-skills-manager'
+CLIENT_PKG = PROJECT / 'packages' / 'dsh-client-ui-skills-manager'
+HARNESS_HOST_DIR = HARNESS / 'packages' / 'skill' / 'skills-manage'
+HARNESS_CLIENT_DIR = HARNESS / 'packages' / 'client' / 'ui-skills-manage'
+MODES_ROOT = PROJECT / 'modes'
+SOURCE = Path(os.environ.get('DSH_SKILLS_SOURCE') or Path.home() / 'Coding_Setting').expanduser().resolve()
+DSH_HOME = Path(os.environ.get('DSH_HOME') or Path.home() / '.dsh').expanduser().resolve()
+LIBRARY_DIR = MODES_ROOT / 'all'
+MANAGED_LIBRARY = DSH_HOME / 'skills-manage' / 'library'
+HOST_NAME = '@deepseek-ai/dsh-skills-manage'
+CLIENT_NAME = '@deepseek-ai/dsh-client-ui-skills-manage'
+
+
+def sh(cmd, cwd=None):
+    print('+', ' '.join(str(c) for c in cmd))
+    return subprocess.run([str(c) for c in cmd], cwd=cwd, check=False)
+
+
+def discover(source: Path):
+    items = []
+    roots = [
+        ('main', source / 'skills'),
+        ('plugin', source / 'plugins' / 'cache' / 'claude-plugins-official' / 'mattpocock-skills' / '1.2.3' / 'skills'),
+    ]
+    for group, root in roots:
+        if not root.is_dir():
+            continue
+        for dirpath, _dirs, files in os.walk(root):
+            if Path(dirpath) == root:
+                continue
+            if 'SKILL.md' in files:
+                items.append((group, Path(dirpath).name, dirpath))
+    return sorted(items)
+
+
+def rebuild_modes():
+    items = discover(SOURCE)
+    if not items:
+        print('没有发现技能，请确认 source 目录结构')
+        return 1
+    groups = {
+        'main': [it for it in items if it[0] == 'main'],
+        'plugin': [it for it in items if it[0] == 'plugin'],
+        'all': items,
+    }
+    MODES_ROOT.mkdir(parents=True, exist_ok=True)
+    for mode, mode_items in groups.items():
+        mode_dir = MODES_ROOT / mode
+        mode_dir.mkdir(parents=True, exist_ok=True)
+        for entry in mode_dir.iterdir():
+            if entry.is_symlink():
+                entry.unlink()
+        for _group, name, target in mode_items:
+            link = mode_dir / name
+            if link.exists() or link.is_symlink():
+                link.unlink()
+            link.symlink_to(target)
+        print(f'[{mode}] {len(mode_items)} links')
+    return 0
+
+
+def ensure_harness_refs():
+    '''Ensure the standalone packages are referenced by the harness aggregate tsconfigs.'''
+    host_ref = '{ "path": "./packages/skill/skills-manage" },'
+    client_ref = '{ "path": "./packages/client/ui-skills-manage" },'
+    host_file = HARNESS / 'tsconfig.host.json'
+    client_file = HARNESS / 'tsconfig.client.json'
+    for file, ref in ((host_file, host_ref), (client_file, client_ref)):
+        text = file.read_text()
+        if ref in text:
+            continue
+        marker = '    { "path": "./packages/skill/tool-skill" },\n' if file == host_file else '    { "path": "./packages/client/ui-settings-plugin-inventory" },\n'
+        if marker not in text:
+            print(f'warning: cannot patch {file} automatically; 请确认 harness 已包含 skills-manager 包引用')
+            continue
+        text = text.replace(marker, marker + ref + '\n', 1)
+        file.write_text(text)
+        print(f'patched {file}')
+
+def sync_source_to_harness():
+    '''Copy the canonical package sources from this repo into the harness workspace.'''
+    for source, target in ((HOST_PKG, HARNESS_HOST_DIR), (CLIENT_PKG, HARNESS_CLIENT_DIR)):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(source, target, dirs_exist_ok=True, ignore=shutil.ignore_patterns('node_modules', 'lib', '*.tsbuildinfo'))
+        print(f'synced {source} -> {target}')
+
+def copy_build_back():
+    '''Copy built lib artifacts back into the standalone packages.'''
+    for source, target in ((HARNESS_HOST_DIR, HOST_PKG), (HARNESS_CLIENT_DIR, CLIENT_PKG)):
+        for part in ('lib',):
+            src = source / part
+            dst = target / part
+            if src.exists():
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+                print(f'copied build {src} -> {dst}')
+
+def build_plugin():
+    if not HARNESS.exists():
+        print(f'error: harness repo 不存在: {HARNESS}')
+        print('请先 clone: git clone https://github.com/deepseek-ai/deepseek-harness ~/AI_Coding/deepseek-harness')
+        return 1
+    ensure_harness_refs()
+    sync_source_to_harness()
+    rc = sh(['corepack', 'pnpm', 'install'], cwd=HARNESS)
+    if rc.returncode:
+        return rc.returncode
+    rc = sh(['corepack', 'pnpm', 'run', 'build:lib:host'], cwd=HARNESS)
+    if rc.returncode:
+        return rc.returncode
+    rc = sh(['corepack', 'pnpm', 'exec', 'tsc', '-b', 'packages/client/ui-skills-manage'], cwd=HARNESS)
+    if rc.returncode:
+        return rc.returncode
+    rc = sh(['corepack', 'pnpm', '--filter', CLIENT_NAME, 'run', 'bundle'], cwd=HARNESS)
+    return rc.returncode
+
+
+def write_profile_patch(profile: Path, include_client: bool):
+    rows = [f'    - id: skills-manage',
+            f'      name: \'{HOST_NAME}\'',
+            '      config:',
+            f'        libraryDirs:',
+            f'          - {LIBRARY_DIR}',
+            f'        managedLibraryDir: {MANAGED_LIBRARY}',
+            '        rank: 250']
+    if include_client:
+        rows.append(f'    - id: ui-skills-manage')
+        rows.append(f'      name: \'{CLIENT_NAME}\'')
+    text = ('# User patch layer managed by Skills_Manage installer.\n'
+            '- insert:\n' + '\n'.join(rows) + '\n')
+    (profile / 'cordis.patch.yml').write_text(text)
+    print(f'写入 {profile / "cordis.patch.yml"}')
+
+
+def profile_deps(profile: Path):
+    pkg = profile / 'package.json'
+    if not pkg.exists():
+        return {}
+    try:
+        data = json.loads(pkg.read_text())
+    except Exception:
+        return {}
+    return data.get('dependencies', {})
+
+
+def install():
+    rc = rebuild_modes()
+    if rc:
+        return rc
+    rc = build_plugin()
+    if rc:
+        return rc
+    copy_build_back()
+    for profile_name, include_client in (('web', True), ('headless', False)):
+        profile = DSH_HOME / 'profiles' / profile_name
+        if not profile.exists():
+            print(f'跳过不存在的 profile: {profile}')
+            continue
+        packages = [str(HOST_PKG)] + ([str(CLIENT_PKG)] if include_client else [])
+        sh(['corepack', 'pnpm', 'add', *packages], cwd=profile)
+        write_profile_patch(profile, include_client)
+    print('安装完成。启动: dsh web')
+    return 0
+
+
+def uninstall():
+    for profile_name, include_client in (('web', True), ('headless', False)):
+        profile = DSH_HOME / 'profiles' / profile_name
+        if not profile.exists():
+            continue
+        names = [HOST_NAME] + ([CLIENT_NAME] if include_client else [])
+        sh(['corepack', 'pnpm', 'remove', *names], cwd=profile)
+        patch = profile / 'cordis.patch.yml'
+        patch.write_text('# User patch layer (Skills_Manage plugin removed)\n[]\n')
+        print(f'移除 {patch}')
+    print('卸载完成')
+    return 0
+
+
+def status():
+    print(f'项目: {PROJECT}')
+    print(f'harness: {HARNESS} 存在={HARNESS.exists()}')
+    print(f'source: {SOURCE} 存在={SOURCE.exists()}')
+    print(f'library root: {LIBRARY_DIR}')
+    print(f'managed library: {MANAGED_LIBRARY} 存在={MANAGED_LIBRARY.exists()}')
+    for mode in ('main', 'plugin', 'all'):
+        mode_dir = MODES_ROOT / mode
+        n = len([p for p in mode_dir.iterdir() if p.is_symlink()]) if mode_dir.exists() else 0
+        print(f'  [{mode}] {n} links')
+    for profile_name in ('web', 'headless'):
+        profile = DSH_HOME / 'profiles' / profile_name
+        deps = profile_deps(profile)
+        print(f'profile {profile_name}: host={HOST_NAME in deps} client={CLIENT_NAME in deps}')
+    return 0
+
+
+def usage():
+    print(__doc__)
+    return 0
+
+
+def main():
+    args = sys.argv[1:]
+    if not args or args[0] in ('-h', '--help', 'help'):
+        return usage()
+    cmd = args[0]
+    if cmd == 'install':
+        return install()
+    if cmd == 'uninstall':
+        return uninstall()
+    if cmd == 'rebuild-modes':
+        return rebuild_modes()
+    if cmd == 'status':
+        return status()
+    return usage()
+
+
+if __name__ == '__main__':
+    sys.exit(main())
