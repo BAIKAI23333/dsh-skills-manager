@@ -27,6 +27,8 @@ cp -a packages/client/ui-skills-manage/lib/client.js "$MERGED/lib/client.js"
 cp -a packages/client/ui-skills-manage/lib/client.js.map "$MERGED/lib/client.js.map"
 mkdir -p "$MERGED/lib/types"
 cp -a packages/client/ui-skills-manage/lib/types/client "$MERGED/lib/types/client"
+# Drop stale type artifacts from earlier file renames.
+rm -f "$MERGED"/lib/types/client/SkillsManageTab.*
 
 # Typert artifacts are generated under the development package name; rebrand
 # them to the published dual-face package name.
