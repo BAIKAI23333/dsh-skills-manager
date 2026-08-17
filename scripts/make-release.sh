@@ -39,14 +39,14 @@ cat > "$MERGED/cordis.patch.yml" <<'YAML'
 # dsh-skills-manager bundle patch.
 - insert:
     - id: skills-manager
-      name: '@baikai23333/dsh-skills-manager'
+      name: '@baikai233/dsh-skills-manager'
       config:
         rank: 250
 YAML
 
 cat > "$MERGED/package.json" <<'JSON'
 {
-  "name": "@baikai23333/dsh-skills-manager",
+  "name": "@baikai233/dsh-skills-manager",
   "description": "DSH skill-group manager: import, organize, and switch SKILL.md groups",
   "version": "VERSION_PLACEHOLDER",
   "license": "MIT",

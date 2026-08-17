@@ -32,7 +32,7 @@
 从 GitHub Releases 下载 `dsh-skills-manager-<version>.tgz`，然后：
 
 ```bash
-dsh plugin --profile web add @baikai23333/dsh-skills-manager
+dsh plugin --profile web add @baikai233/dsh-skills-manager
 dsh web
 ```
 
@@ -40,7 +40,7 @@ DSH 会自动识别该包为 bundle，并把它加入 profile 的插件层；打
 **设置 → Skill 群** 即可使用。headless 用户：
 
 ```bash
-dsh plugin --profile headless add @baikai23333/dsh-skills-manager
+dsh plugin --profile headless add @baikai233/dsh-skills-manager
 ```
 
 ### 开发者：从源码构建
