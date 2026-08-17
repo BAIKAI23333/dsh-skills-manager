@@ -46,7 +46,7 @@ dsh plugin --profile headless add ./dsh-skills-manager-<version>.tgz
 ### 开发者：从源码构建
 
 ```bash
-git clone https://github.com/<your-name>/dsh-skills-manager.git
+git clone https://github.com/BAIKAI23333/dsh-skills-manager.git
 cd dsh-skills-manager
 
 # 需要一份 deepseek-harness 源码（用于 client bundle 构建预设）
