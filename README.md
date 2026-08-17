@@ -29,18 +29,28 @@
 
 ### 普通用户：一条命令（已发布到 npm）
 
+DSH 已全局安装时：
+
 ```bash
 dsh plugin --profile web add @baikai233/dsh-skills-manager
 dsh web
 ```
 
-DSH 会自动识别该包为 bundle，并把它加入 profile 的插件层；打开
-**设置 → Skill 群** 即可使用。
+通过 npx 使用 DSH 时（Windows / Linux / macOS 通用）：
+
+```bash
+npx @deepseek-ai/dsh plugin --profile web add @baikai233/dsh-skills-manager
+npx @deepseek-ai/dsh web
+```
+
+两种方式都会写入同一个 DSH profile（默认 `~/.dsh`），插件安装后自动生效。
 
 headless 用户：
 
 ```bash
 dsh plugin --profile headless add @baikai233/dsh-skills-manager
+# 或
+npx @deepseek-ai/dsh plugin --profile headless add @baikai233/dsh-skills-manager
 ```
 
 ### 开发者：从源码构建
