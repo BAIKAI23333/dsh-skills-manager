@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Yan-Zero/dsh-std/614dfa1ac168db79fcf4577cf0ebb34e2e3b944b/packages/manifest/schema/dsh-plugin-0.15.schema.json",
+  "manifestVersion": "0.15",
+  "id": "io.github.baikai23333.dsh-client-ui-skills-manage",
+  "name": "@deepseek-ai/dsh-client-ui-skills-manage",
+  "version": "0.1.0-rc.1",
+  "facets": {
+    "host": {
+      "entry": "lib/index.js",
+      "apiVersion": "v1alpha1"
+    }
+  },
+  "requires": {
+    "contracts": []
+  },
+  "permissions": [],
+  "contributes": {
+    "commands": []
+  },
+  "subscriptions": [],
+  "license": "MIT",
+  "source": {
+    "repository": "https://github.com/BAIKAI23333/dsh-skills-manager"
+  },
+  "overrides": [],
+  "x-eac": {
+    "role": "identity-metadata",
+    "note": "EAC 独立分发插件（dsh.client platform=web 双面包，经安装器/市场装入，companion-sync 注册表加载，非 std adapter）；facets 留空 = 尚未参与 std 协商",
+    "maintenance": "eac-private",
+    "autoUpdate": false,
+    "sourceNote": "本仓库 monorepo 子目录（packages/dsh-client-ui-skills-manager），entry lib/ 为 tsdown 构建产物"
+  }
+}
